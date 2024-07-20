@@ -3,24 +3,26 @@
 #include <ESPAsyncWebServer.h>
 #include "ESP32_MailClient.h"
 #include <ESP32Servo.h>
-#include "sdkconfig.h"
 
 
+const char* ssid = "YOUR_SSID";           //SSID of Wifi network
+const char* password = "YOUR_PASSWORD";   // Password of wifi network
  
-const char* ssid = "yo";        //SSID of Wifi network
-const char* password = "12345678";   // Password of wifi network
- 
-#define emailSenderAccount    "senderiot@outlook.com"    // Sender email address
-#define emailSenderPassword   "IOTpro123@"            // Sender email password
+#define emailSenderAccount    "senderiot@outlook.com"      
+// Sender email address(you have to make a account in outlook)
+#define emailSenderPassword   "IOTpro123@"                   // Sender email password
 #define smtpServer            "smtp-mail.outlook.com"
-#define smtpServerPort        587
-#define emailSubject          "ALERT! Gas Leak Detected"   // Email subject
-#define BuzzerPin 19
-Servo myservo;  // create servo object to control a servo
-int pos = 0;    // variable to store the servo position
+#define smtpServerPort         587
+#define emailSubject          "ALERT! Gas Leak Detected"     // Email subject
+#define BuzzerPin 19                                         //pin 
+
+
+Servo myservo;                                // create servo object to control a servo
+int pos = 0;                                  // variable to store the servo position
  
-String inputMessage = "aflah.kareem9123@gmail.com"; 
+String inputMessage = "Sender email id"; 
 //String inputMessage = "iotproject349@gmail.com";  //Reciepent email alert.
+
 String enableEmailChecked = "checked";
 String inputMessage2 = "true";
  
@@ -30,6 +32,8 @@ String lastgaslevel;
  
  
 // HTML web page to handle 3 input fields (email_input, enable_email_input, threshold_input)
+
+
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html><head>
   <title>Email Notification with Gas Level</title>
@@ -46,35 +50,38 @@ const char index_html[] PROGMEM = R"rawliteral(
   </form>
 </body></html>)rawliteral";
  
+
+
 void notFound(AsyncWebServerRequest *request) 
-{
+
+ {
   request->send(404, "text/plain", "Not found");
-}
-AsyncWebServer server(80);
+ }
+  AsyncWebServer server(80);
  
 String processor(const String& var)
-{
-  if(var == "GASVALUE")
-  {
-    return lastgaslevel;
-  }
-  else if(var == "EMAIL_INPUT")
-  {
-    return inputMessage;
-  }
-  else if(var == "ENABLE_EMAIL")
-  {
-    return enableEmailChecked;
-  }
-  else if(var == "THRESHOLD")
-  {
+ {
+     if(var == "GASVALUE")
+      {
+       return lastgaslevel;
+      }
+    else if(var == "EMAIL_INPUT")
+     {
+      return inputMessage;
+     }
+    else if(var == "ENABLE_EMAIL")
+     {
+      return enableEmailChecked;
+     }
+    else if(var == "THRESHOLD")
+    {
     return inputMessage3;
-  }
+    }
   return String();
 }
  
- 
-// Flag variable to keep track if email notification was sent or not
+ // Flag variable to keep track if email notification was sent or not
+
 bool emailSent = false;
 const char* PARAM_INPUT_1 = "email_input";
 const char* PARAM_INPUT_2 = "enable_email_input";
@@ -89,65 +96,74 @@ SMTPData smtpData;
  
 void setup() 
 {
-  Serial.begin(115200);
-  myservo.attach(23);
-  pinMode(BuzzerPin,OUTPUT);
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  if (WiFi.waitForConnectResult() != WL_CONNECTED) 
-  {
-    Serial.println("WiFi Failed!");
-    return;
-  }
-  Serial.println();
-  Serial.print("ESP IP Address: http://");
-  Serial.println(WiFi.localIP());
+   Serial.begin(115200);
+   myservo.attach(23);
+   pinMode(BuzzerPin,OUTPUT);
+   WiFi.mode(WIFI_STA);
+   WiFi.begin(ssid, password);
+    if (WiFi.waitForConnectResult() != WL_CONNECTED) 
+    {
+      Serial.println("WiFi Failed!");
+      return;
+    }
+   Serial.println();
+   Serial.print("ESP IP Address: http://");
+   Serial.println(WiFi.localIP());
   
  
   // Send web page to client
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+    {
     request->send_P(200, "text/html", index_html, processor);
-  });
+    });
+  
   // Receive an HTTP GET request at <ESP_IP>/get?email_input=<inputMessage>&enable_email_input=<inputMessage2>&threshold_input=<inputMessage3>
-  server.on("/get", HTTP_GET, [] (AsyncWebServerRequest *request) {
+    
+    server.on("/get", HTTP_GET, [] (AsyncWebServerRequest *request) 
+    {
     // GET email_input value on <ESP_IP>/get?email_input=<inputMessage>
-    if (request->hasParam(PARAM_INPUT_1)) {
-      inputMessage = request->getParam(PARAM_INPUT_1)->value();
+       if (request->hasParam(PARAM_INPUT_1)) 
+         {
+           inputMessage = request->getParam(PARAM_INPUT_1)->value();
       // GET enable_email_input value on <ESP_IP>/get?enable_email_input=<inputMessage2>
-      if (request->hasParam(PARAM_INPUT_2)) {
-        inputMessage2 = request->getParam(PARAM_INPUT_2)->value();
-        enableEmailChecked = "checked";
-      }
+       if (request->hasParam(PARAM_INPUT_2)) 
+         {
+           inputMessage2 = request->getParam(PARAM_INPUT_2)->value();
+           enableEmailChecked = "checked";
+         }
       else 
-      {
+         {
         inputMessage2 = "false";
         enableEmailChecked = "";
-      }
+        }
       // GET threshold_input value on <ESP_IP>/get?threshold_input=<inputMessage3>
-      if (request->hasParam(PARAM_INPUT_3)) {
-        inputMessage3 = request->getParam(PARAM_INPUT_3)->value();
-      }
-    }
-    else {
-      inputMessage = "No message sent";
-    }
+      if (request->hasParam(PARAM_INPUT_3)) 
+         {
+           inputMessage3 = request->getParam(PARAM_INPUT_3)->value();
+         }
+     }
+      else 
+       {
+         inputMessage = "No message sent";
+       }
+    
     Serial.println(inputMessage);
     Serial.println(inputMessage2);
     Serial.println(inputMessage3);
     request->send(200, "text/html", "HTTP GET request sent to your ESP.<br><a href=\"/\">Return to Home Page</a>");
-  });
-  server.onNotFound(notFound);
-  server.begin();
+    });
+    server.onNotFound(notFound);
+    server.begin();
 }
  
  
  
 void loop() 
 {
-  unsigned long currentMillis = millis();
-  if (currentMillis - previousMillis >= interval) {
+    unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis >= interval) 
+   {
     previousMillis = currentMillis;
- 
     float gas_analog_value = analogRead(35);
     float gas_value = ((gas_analog_value/1023)*100);
     Serial.print(gas_analog_value);
@@ -157,39 +173,58 @@ void loop()
     lastgaslevel = String(gas_value);
     
     // Check if gas_value is above threshold and if it needs to send the Email alert
-    if(gas_value > inputMessage3.toFloat() && inputMessage2 == "true" && !emailSent){
-      String emailMessage = String("Gas Level above threshold. Current Gas Level: ") + 
-                            String(gas_value);
-                             myservo.write(180);
-                             digitalWrite(BuzzerPin, HIGH);
-      if(sendEmailNotification(emailMessage)) {
-        Serial.println(emailMessage);
-        emailSent = true;
+    if(gas_value > inputMessage3.toFloat() && inputMessage2 == "true" && !emailSent)
+    {
+        String emailMessage = String("Gas Level above threshold. Current Gas Level: ") + 
+                              String(gas_value);
+                              myservo.write(180);
+                              digitalWrite(BuzzerPin, HIGH);
+       if(sendEmailNotification(emailMessage)) 
+         {
+           Serial.println(emailMessage);
+           emailSent = true;
         
         //delay(2000);
-      }
-      else {
+         }
+    else 
+       {
         Serial.println("Email failed to send");
       }    
     }
     // Check if gas_value is below threshold and if it needs to send the Email alert
     else if((gas_value < inputMessage3.toFloat()) && inputMessage2 == "true" && emailSent) 
-    {
-      String emailMessage = String("Gas Level below threshold. Current gas_value: ") + 
-                            String(gas_value) + String(" C");
-                             myservo.write(0);
-
-      digitalWrite(BuzzerPin, LOW);                       
+     {
+         String emailMessage = String("Gas Level below threshold. Current gas_value: ") + 
+                               String(gas_value) + String(" C");
+                               myservo.write(0);
+                               digitalWrite(BuzzerPin, LOW);                       
       if(sendEmailNotification(emailMessage)) 
-      {
-        Serial.println(emailMessage);
-        emailSent = false;
+         {
+           Serial.println(emailMessage);
+           emailSent = false;
         
-      }
-      else {
+         }
+     else 
+        {
         Serial.println("Email failed to send");
+       }
       }
-    }
+    // Check if gas_value is below threshold and if it needs to send the E
+   else if (( gas_value < inputMessage3 . toFloat ()) && inputMessage2 == " true " && emailSent )
+     {
+      String emailMessage = String ( " Gas Level below threshold .Current gas_value :  " ) +
+      String ( gas_value ) + String ( " C " );
+      digitalWrite ( BuzzerPin , LOW );
+      if ( sendEmailNotification ( emailMessage ))
+        {
+           Serial . println ( emailMessage );
+           emailSent = false ;
+        }
+      else 
+        {
+        Serial . println ( " Email failed to send " );
+        }
+      }
   }
 }
  
@@ -197,42 +232,41 @@ void loop()
 bool sendEmailNotification(String emailMessage)
 {
   // Set the SMTP Server Email host, port, account and password
-  smtpData.setLogin(smtpServer, smtpServerPort, emailSenderAccount, emailSenderPassword);
-  
-  smtpData.setSender("ESP32_Gas_Alert_Mail", emailSenderAccount);
+    smtpData.setLogin(smtpServer, smtpServerPort, emailSenderAccount, emailSenderPassword);
+    smtpData.setSender("ESP32_Gas_Alert_Mail", emailSenderAccount);
   
   // Set Email priority or importance High, Normal, Low or 1 to 5 (1 is highest)
-  smtpData.setPriority("High");
+    smtpData.setPriority("High");
   
   // Set the subject
-  smtpData.setSubject(emailSubject);
+    smtpData.setSubject(emailSubject);
   
   // Set the message with HTML format
-  smtpData.setMessage(emailMessage, true);
+    smtpData.setMessage(emailMessage, true);
   
   // Add recipients
-  smtpData.addRecipient(inputMessage);
-  smtpData.setSendCallback(sendCallback);
+    smtpData.addRecipient(inputMessage);
+    smtpData.setSendCallback(sendCallback);
   
-  if (!MailClient.sendMail(smtpData)) 
-{
-    Serial.println("Error sending Email, " + MailClient.smtpErrorReason());
-    return false;
-  }
+   if (!MailClient.sendMail(smtpData)) 
+     {
+       Serial.println("Error sending Email, " + MailClient.smtpErrorReason());
+       return false;
+     }
  
-  smtpData.empty();
-  return true;
+    smtpData.empty();
+    return true;
 }
  
  
 void sendCallback(SendStatus msg) 
 {
   // Print the current status
-  Serial.println(msg.info());
+    Serial.println(msg.info());
   
   // Do something when complete
-  if (msg.success()) 
-{
-    Serial.println("----------------");
-  }
+    if (msg.success()) 
+     {
+       Serial.println("----------------");
+     }
 }
